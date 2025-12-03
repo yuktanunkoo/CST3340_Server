@@ -71,6 +71,57 @@ app.get('/collections/:collectionName', async function(req, res, next) {
     }
 });
 
+app.get('/collections/:collectionName/search', async function(req, res, next) {
+//   app.get("/users", async (req, res) => {
+//   const filters = {};
+
+//   for (let key in req.query) {
+//     let value = req.query[key];
+
+//     // Convert JSON arrays: ?roles=["admin","user"]
+//     try {
+//       value = JSON.parse(value);
+//     } catch {}
+
+//     // Number
+//     if (typeof value === "string" && !isNaN(value)) {
+//       filters[key] = Number(value);
+//     }
+//     // Boolean
+//     else if (value === "true" || value === "false") {
+//       filters[key] = value === "true";
+//     }
+//     // Regex (contains)
+//     else if (typeof value === "string") {
+//       filters[key] = { $regex: value, $options: "i" };
+//     } 
+//     // Arrays or objects (already parsed)
+//     else {
+//       filters[key] = value;
+//     }
+//   }
+
+//   const result = await db.collection("users").find(filters).toArray();
+//   res.json(result);
+// });
+    const num = Number(req.query.search)
+    const query = {"$or":[{"subject": { $regex: req.query.search, $options: "i" }}, {"region": { $regex: req.query.search, $options: "i" }}, {"availableSeats": num}, {"price": num}]};
+    try{
+        console.log("received request to query Collection: ", req.params.collectionName);
+        console.log("Accessing Collection: ", req.params.collectionName);
+        //Retreive all documents from the specified collection
+        const results = await req.collection.find(query).toArray();
+        //Log results into console for debugging
+        console.log("Retreived documents: ", results);
+
+        res.json(results); //Return results to frontend
+    }
+    catch(err){
+        console.error('Error fetching documents: ', err.message);
+        next(err); //Pass error to the next middleware or error handler in the application
+    }
+});
+
 app.post('/collections/:collectionName', async function(req, res, next) {
   try{
         // TODO: Validate req.body
@@ -92,10 +143,9 @@ app.post('/collections/:collectionName', async function(req, res, next) {
 
 app.put('/collections/:collectionName/:_id', async function(req, res, next) {
       try {
-        // TODO: Validate req.body
         console.log('Received request to update document with id:', req.params._id);
 
-        //Update single doc
+        //Update document corresponding to the ObjectId
         const result = await req.collection.updateOne({ _id: new ObjectId(req.params._id) },
         { $set: req.body },
         { safe: true, multi: false });
@@ -137,7 +187,6 @@ app.put('/collections/:collectionName/:_id', async function(req, res, next) {
 
 app.delete('/collections/:collectionName/:id', async function(req, res, next) {
   try{
-        // TODO: Validate req.body
         console.log('Received request to delete document with id:', req.params.id);
 
         //Insert new doc
